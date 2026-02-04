@@ -1,0 +1,42 @@
+# Backend Deployment - Defines how to run the PHP backend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  labels:
+    app: backend
+spec:
+  replicas: 1  # Number of backend pods to run
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: php-backend
+        image: php-backend:local  # We'll build this image
+        imagePullPolicy: Never  # Use local image, don't pull from registry
+        ports:
+        - containerPort: 80  # PHP Apache runs on port 80 inside container
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+---
+# Backend Service - Exposes the backend to other pods and external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  type: NodePort  # Makes it accessible from your local machine
+  selector:
+    app: backend
+  ports:
+  - protocol: TCP
+    port: 80        # Port inside the cluster
+    targetPort: 80  # Port on the container
+    nodePort: 30800 # Port to access from your machine (http://localhost:30800)

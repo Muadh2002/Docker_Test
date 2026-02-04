@@ -13,6 +13,10 @@ RUN npm install
 # Copy all frontend files
 COPY . .
 
+# Set environment variable for API URL
+# Can be overridden at runtime
+ENV REACT_APP_API_URL=http://localhost:30800/api
+
 # Expose port 3000
 EXPOSE 3000
 

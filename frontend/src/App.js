@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 // PHP API base URL
-const API_URL = 'http://localhost:8000/api';
+// For Docker Compose: http://localhost:8000/api
+// For Kubernetes: http://localhost:30800/api
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 function App() {
   // State management - React hooks

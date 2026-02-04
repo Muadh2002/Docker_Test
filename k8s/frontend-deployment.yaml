@@ -1,0 +1,45 @@
+# Frontend Deployment - Defines how to run the React frontend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  labels:
+    app: frontend
+spec:
+  replicas: 1  # Number of frontend pods to run
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: react-frontend
+        image: react-frontend:local  # We'll build this image
+        imagePullPolicy: Never  # Use local image, don't pull from registry
+        ports:
+        - containerPort: 3000  # React dev server runs on port 3000
+        env:
+        - name: CHOKIDAR_USEPOLLING
+          value: "true"
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+# Frontend Service - Exposes the frontend to external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  type: NodePort  # Makes it accessible from your local machine
+  selector:
+    app: frontend
+  ports:
+  - protocol: TCP
+    port: 3000       # Port inside the cluster
+    targetPort: 3000 # Port on the container
+    nodePort: 30300  # Port to access from your machine (http://localhost:30300)
