@@ -1,0 +1,28 @@
+# Node modules
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Build files
+build/
+dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+*.log
+
+# Docker volumes (optional - keep data local)
+# Uncomment if you don't want to track any local data
+# backend/data/users.json
