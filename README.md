@@ -1,5 +1,7 @@
 # React + PHP Basic Project
 
+![CI/CD Pipeline](https://github.com/YOUR_USERNAME/YOUR_REPO/workflows/CI%2FCD%20Pipeline/badge.svg)
+
 A simple project to learn how React frontend communicates with a PHP backend.
 
 ## Project Structure

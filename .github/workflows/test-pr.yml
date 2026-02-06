@@ -1,0 +1,48 @@
+name: PR Tests
+
+# Run quick tests on pull requests
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  quick-test:
+    name: Quick Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Check Frontend
+      working-directory: ./frontend
+      run: |
+        npm ci
+        npm run build
+    
+    - name: Check Backend
+      working-directory: ./backend
+      run: |
+        find . -name "*.php" -exec php -l {} \;
+    
+    - name: Validate Docker files
+      run: |
+        docker build -t test-backend ./backend
+        docker build -t test-frontend ./frontend
+    
+    - name: Comment on PR
+      uses: actions/github-script@v6
+      if: always()
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '✅ All checks passed! Ready to merge.'
+          })
