@@ -7,10 +7,22 @@ on:
     branches: [ main, master ]
 
 jobs:
-  # Job 1: Frontend + Cypress E2E with backend
   frontend:
-    name: Frontend - Build & E2E Tests
+    name: Frontend - Build & Test
     runs-on: ubuntu-latest
+    services:
+      php-backend:
+        image: php:8.1-cli
+        ports:
+          - 8000:8000
+        options: >-
+          --health-cmd "curl -f http://localhost:8000 || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+        volumes:
+          - ./backend:/app
+        command: bash -c "cd /app && php -S 0.0.0.0:8000"
 
     steps:
       - name: Checkout code
@@ -23,11 +35,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: npm ci
@@ -36,53 +43,25 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      # Start backend and frontend servers together
-      - name: Start backend + frontend for Cypress
-        run: |
-          echo "Starting PHP backend..."
-          php -S localhost:8000 -t ./backend > backend.log 2>&1 &
-          echo "Waiting for backend to be ready..."
-          until curl -s -f http://localhost:8000/api/users.php > /dev/null; do
-            echo "Backend not ready yet..."
-            sleep 1
-          done
-
-          echo "Starting frontend server..."
-          npx serve -s frontend/build -l 3000 > frontend.log 2>&1 &
-          npx wait-on http://127.0.0.1:3000
-
-      # Run Cypress E2E tests
-      - name: Run Cypress E2E tests
+      - name: Serve frontend & run Cypress
         working-directory: ./frontend
-        run: npx cypress run --browser chrome --headless --env apiUrl=http://localhost:8000/api
+        run: |
+          npx serve -s build -l 3000 &
+          npx wait-on http://127.0.0.1:3000
+          echo "Running Cypress tests..."
+          npx cypress run --browser chrome --headless --env apiUrl=http://127.0.0.1:8000/api
         env:
           CI: true
 
-      # Upload Cypress artifacts
-      - name: Upload Cypress screenshots
+      - name: Upload Cypress artifacts (screenshots/videos)
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: cypress-screenshots
-          path: frontend/cypress/screenshots
+          name: cypress-artifacts
+          path: frontend/cypress/screenshots,frontend/cypress/videos
 
-      - name: Upload Cypress videos
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: cypress-videos
-          path: frontend/cypress/videos
-
-      # Upload frontend build artifacts
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/build
-
-  # Job 2: Backend lint and API check
   backend:
-    name: Backend - Lint & Test
+    name: Backend - Syntax & API Check
     runs-on: ubuntu-latest
 
     steps:
@@ -100,14 +79,13 @@ jobs:
           echo "Checking PHP syntax..."
           find . -name "*.php" -exec php -l {} \;
 
-      - name: Test API endpoint (smoke test)
+      - name: Test backend API
         working-directory: ./backend
         run: |
-          php -S localhost:8000 > backend.log 2>&1 &
-          sleep 2
+          php -S 0.0.0.0:8000 -t . &
+          sleep 5
           curl -f http://localhost:8000/api/users.php || exit 1
 
-  # Job 3: Build Docker Images
   docker-build:
     name: Docker - Build Images
     runs-on: ubuntu-latest
@@ -140,7 +118,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Job 4: Deploy (main branch only)
   deploy:
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
@@ -151,7 +128,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy notification
+      - name: Deployment notice
         run: |
           echo "Deployment would happen here"
-          echo "Push images, update manifests, apply kubectl..."
+          echo "Push images, update manifests, apply kubectl commands."
