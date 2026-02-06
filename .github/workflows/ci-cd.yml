@@ -32,6 +32,28 @@ jobs:
       working-directory: ./frontend
       run: npm test -- --watchAll=false --passWithNoTests
     
+    - name: Run Cypress E2E tests
+      working-directory: ./frontend
+      run: |
+        npm run build
+        npx start-server-and-test start http://localhost:3000 'cypress run --browser chrome'
+      env:
+        CI: true
+    
+    - name: Upload Cypress screenshots
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: cypress-screenshots
+        path: frontend/cypress/screenshots
+    
+    - name: Upload Cypress videos
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: cypress-videos
+        path: frontend/cypress/videos
+    
     - name: Build React app
       working-directory: ./frontend
       run: npm run build
