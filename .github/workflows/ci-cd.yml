@@ -36,7 +36,9 @@ jobs:
       working-directory: ./frontend
       run: |
         npm run build
-        npx start-server-and-test start http://localhost:3000 'cypress run --browser chrome'
+        npx serve -s build -l 3000 &
+        npx wait-on http://127.0.0.1:3000
+        npx cypress run --browser chrome
       env:
         CI: true
     
