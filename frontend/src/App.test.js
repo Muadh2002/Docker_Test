@@ -9,8 +9,8 @@ test('renders the app header', () => {
 
 test('renders add user form', () => {
   render(<App />);
-  const addUserButton = screen.getByText(/Add User/i);
-  expect(addUserButton).toBeInTheDocument();
+  const formHeading = screen.getByText(/Add New User/i);
+  expect(formHeading).toBeInTheDocument();
 });
 
 test('renders users list section', () => {
