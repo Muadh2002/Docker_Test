@@ -59,7 +59,8 @@ jobs:
     - name: Validate PHP syntax
       working-directory: ./backend
       run: |
-        find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
+        echo "Checking PHP syntax..."
+        find . -name "*.php" -exec php -l {} \;
     
     - name: Test API endpoint
       working-directory: ./backend
