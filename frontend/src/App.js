@@ -112,12 +112,12 @@ function App() {
         <p>Simple User Management System</p>
       </header>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-message" data-cy="error-message">{error}</div>}
 
       {/* Add User Form */}
       <section className="form-section">
         <h2>Add New User</h2>
-        <form onSubmit={addUser}>
+        <form onSubmit={addUser} noValidate> 
           <input
             type="text"
             placeholder="Name"
