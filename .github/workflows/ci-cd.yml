@@ -1,5 +1,6 @@
 name: CI/CD Pipeline
 
+# Trigger: Run on push to main/master branch or PRs
 on:
   push:
     branches: [ main, master ]
@@ -7,22 +8,10 @@ on:
     branches: [ main, master ]
 
 jobs:
+  # Job 1: Build and Test Frontend
   frontend:
     name: Frontend - Build & Test
     runs-on: ubuntu-latest
-    services:
-      php-backend:
-        image: php:8.1-cli
-        ports:
-          - 8000:8000
-        options: >-
-          --health-cmd "curl -f http://localhost:8000 || exit 1"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 5
-        volumes:
-          - ./backend:/app
-        command: bash -c "cd /app && php -S 0.0.0.0:8000"
 
     steps:
       - name: Checkout code
@@ -39,29 +28,59 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Build frontend
+      - name: Run frontend unit tests
+        working-directory: ./frontend
+        run: npm test -- --watchAll=false --passWithNoTests
+
+      - name: Start PHP backend for Cypress
+        working-directory: ./backend
+        run: |
+          php -S 0.0.0.0:8000 &   # Start backend
+          echo "Waiting for PHP backend to be ready..."
+          for i in {1..10}; do
+            curl -f http://localhost:8000/api/users.php && break || sleep 2
+          done
+
+      - name: Build React app
         working-directory: ./frontend
         run: npm run build
 
-      - name: Serve frontend & run Cypress
+      - name: Serve React build and wait
         working-directory: ./frontend
         run: |
           npx serve -s build -l 3000 &
           npx wait-on http://127.0.0.1:3000
-          echo "Running Cypress tests..."
-          npx cypress run --browser chrome --headless --env apiUrl=http://127.0.0.1:8000/api
+
+      - name: Run Cypress E2E tests
+        working-directory: ./frontend
+        run: npx cypress run --browser chrome --headless
         env:
           CI: true
+          REACT_APP_API_URL: http://localhost:8000/api
 
-      - name: Upload Cypress artifacts (screenshots/videos)
+      - name: Upload Cypress screenshots
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: cypress-artifacts
-          path: frontend/cypress/screenshots,frontend/cypress/videos
+          name: cypress-screenshots
+          path: frontend/cypress/screenshots
 
+      - name: Upload Cypress videos
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cypress-videos
+          path: frontend/cypress/videos
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build
+
+  # Job 2: Backend validation
   backend:
-    name: Backend - Syntax & API Check
+    name: Backend - PHP Validation
     runs-on: ubuntu-latest
 
     steps:
@@ -79,13 +98,14 @@ jobs:
           echo "Checking PHP syntax..."
           find . -name "*.php" -exec php -l {} \;
 
-      - name: Test backend API
+      - name: Test backend server
         working-directory: ./backend
         run: |
-          php -S 0.0.0.0:8000 -t . &
+          php -S localhost:8000 &
           sleep 5
           curl -f http://localhost:8000/api/users.php || exit 1
 
+  # Job 3: Build Docker Images
   docker-build:
     name: Docker - Build Images
     runs-on: ubuntu-latest
@@ -118,6 +138,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # Job 4: Deploy (only on main branch)
   deploy:
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
@@ -128,7 +149,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deployment notice
+      - name: Deploy notification
         run: |
           echo "Deployment would happen here"
-          echo "Push images, update manifests, apply kubectl commands."
+          echo "Push images to container registry, update Kubernetes manifests, and apply kubectl commands."
