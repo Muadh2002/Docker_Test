@@ -1,6 +1,5 @@
 name: CI/CD Pipeline
 
-# Trigger: Run on push to main branch or pull requests
 on:
   push:
     branches: [ main, master ]
@@ -8,9 +7,9 @@ on:
     branches: [ main, master ]
 
 jobs:
-  # Job 1: Build, Test Frontend + Cypress (with backend)
+  # Job 1: Frontend + Cypress E2E with backend
   frontend:
-    name: Frontend - Build & Test
+    name: Frontend - Build & E2E Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -37,32 +36,25 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      # Start PHP backend for Cypress integration tests
-      - name: Start PHP backend
-        working-directory: ./backend
+      # Start backend and frontend servers together
+      - name: Start backend + frontend for Cypress
         run: |
-          php -S localhost:8000 -t . > backend.log 2>&1 &
-          sleep 2
-
-      # Wait until backend API is ready
-      - name: Wait for backend
-        run: |
-          until curl -f http://localhost:8000/api/users.php; do
-            echo "Waiting for backend..."
-            sleep 2
+          echo "Starting PHP backend..."
+          php -S localhost:8000 -t ./backend > backend.log 2>&1 &
+          echo "Waiting for backend to be ready..."
+          until curl -s -f http://localhost:8000/api/users.php > /dev/null; do
+            echo "Backend not ready yet..."
+            sleep 1
           done
 
-      # Serve frontend for Cypress
-      - name: Serve frontend
-        working-directory: ./frontend
-        run: |
-          npx serve -s build -l 3000 &
+          echo "Starting frontend server..."
+          npx serve -s frontend/build -l 3000 > frontend.log 2>&1 &
           npx wait-on http://127.0.0.1:3000
 
       # Run Cypress E2E tests
       - name: Run Cypress E2E tests
         working-directory: ./frontend
-        run: npx cypress run --browser chrome
+        run: npx cypress run --browser chrome --headless --env apiUrl=http://localhost:8000/api
         env:
           CI: true
 
@@ -88,9 +80,9 @@ jobs:
           name: frontend-build
           path: frontend/build
 
-  # Job 2: Backend - Lint & simple tests
+  # Job 2: Backend lint and API check
   backend:
-    name: Backend - Build & Test
+    name: Backend - Lint & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -148,7 +140,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Job 4: Deploy (only on main branch)
+  # Job 4: Deploy (main branch only)
   deploy:
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
@@ -162,8 +154,4 @@ jobs:
       - name: Deploy notification
         run: |
           echo "Deployment would happen here"
-          echo "For local Kubernetes, you would:"
-          echo "1. Push images to container registry"
-          echo "2. Update Kubernetes manifests"
-          echo "3. Apply kubectl commands"
-          echo "See README-CICD.md for setup instructions"
+          echo "Push images, update manifests, apply kubectl..."
