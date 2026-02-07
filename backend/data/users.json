@@ -183,5 +183,30 @@
         "id": 39,
         "name": "User 1770392403963",
         "email": "user1770392403963@test.com"
+    },
+    {
+        "id": 40,
+        "name": "Delete User 1770438196356",
+        "email": "delete1770438196356@example.com"
+    },
+    {
+        "id": 41,
+        "name": "Delete User 1770438677755",
+        "email": "delete1770438677755@example.com"
+    },
+    {
+        "id": 42,
+        "name": "Delete User 1770438806244",
+        "email": "delete1770438806244@example.com"
+    },
+    {
+        "id": 43,
+        "name": "Delete User 1770438915321",
+        "email": "delete1770438915321@example.com"
+    },
+    {
+        "id": 44,
+        "name": "Delete User 1770439092530",
+        "email": "delete1770439092530@example.com"
     }
 ]

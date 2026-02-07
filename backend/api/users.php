@@ -110,6 +110,23 @@ switch ($method) {
         $users[] = $newUser;
         saveUsers($users);
 
+        // --- Start of n8n Webhook Integration ---
+        // After successfully saving the user, send their data to the n8n webhook.
+        $n8nWebhookUrl = 'https://muadh2002.app.n8n.cloud/webhook-test/dd53d705-0e71-4cd9-b220-f9863f43fc41';
+
+        // Use cURL to send the new user data to the webhook
+        $ch = curl_init($n8nWebhookUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($newUser));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json'
+        ]);
+        // Execute and close the cURL session (we don't need the response)
+        curl_exec($ch);
+        curl_close($ch);
+        // --- End of n8n Webhook Integration ---
+
         http_response_code(201);
         echo json_encode([
             'success' => true,

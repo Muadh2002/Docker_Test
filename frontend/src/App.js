@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 
 // PHP API base URL
@@ -13,13 +13,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch users when component mounts
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
   // Function to fetch all users from PHP backend
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -37,7 +32,12 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Fetch users when component mounts
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   // Function to add a new user
   const addUser = async (e) => {
